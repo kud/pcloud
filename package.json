@@ -1,5 +1,5 @@
 {
-  "name": "@kud/pcloud-sdk",
+  "name": "@kud/pcloud",
   "version": "0.1.1",
   "description": "Typed pCloud API client — shared SDK for CLI, MCP, and extensions",
   "type": "module",
@@ -33,7 +33,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kud/pcloud-sdk.git"
+    "url": "git+https://github.com/kud/pcloud.git"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -44,5 +44,8 @@
   "devDependencies": {
     "@types/node": "^25.0.0",
     "typescript": "^6.0.0"
+  },
+  "dependencies": {
+    "open": "11.0.0"
   }
 }
