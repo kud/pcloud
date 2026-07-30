@@ -247,6 +247,20 @@ export class PCloudAPI {
     })
   }
 
+  // diff events carry parentfolderid but never a path, so reconstructing where
+  // something lived means walking parents by id. nofiles keeps that walk cheap:
+  // only the folder's own metadata is needed, never its contents.
+  async listFolderById(
+    folderid: number,
+    options: { nofiles?: boolean } = {},
+  ): Promise<PCloudFolderResponse> {
+    return this.request<PCloudFolderResponse>("listfolder", {
+      ...this.getAuthParams(),
+      folderid,
+      ...(options.nofiles ? { nofiles: 1 } : {}),
+    })
+  }
+
   async stat(path: string): Promise<PCloudResponse> {
     return this.request("stat", {
       ...this.getAuthParams(),
