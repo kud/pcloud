@@ -437,8 +437,18 @@ export class PCloudAPI {
     })
   }
 
+  // trash_list nests the deleted items under metadata.contents, unlike the
+  // sibling listing calls that put them at the top level. Lifting them here
+  // means a caller reading `contents` — as every other listing allows — sees a
+  // full trash rather than an empty one.
   async listTrash(): Promise<PCloudResponse> {
-    return this.request("trash_list", this.getAuthParams())
+    const response = await this.request<PCloudResponse>(
+      "trash_list",
+      this.getAuthParams(),
+    )
+    const nested = (response.metadata as { contents?: unknown[] } | undefined)
+      ?.contents
+    return nested ? { ...response, contents: nested } : response
   }
 
   async restoreFromTrash(fileid: number): Promise<PCloudResponse> {
