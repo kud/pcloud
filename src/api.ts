@@ -451,8 +451,34 @@ export class PCloudAPI {
     return nested ? { ...response, contents: nested } : response
   }
 
-  async restoreFromTrash(fileid: number): Promise<PCloudResponse> {
-    return this.request("trash_restore", { ...this.getAuthParams(), fileid })
+  // restoreTo matters whenever the original parent was deleted too — which is
+  // the usual case, since a folder deletion is what puts its children here.
+  // Without it pCloud picks a destination itself, and trash_restorepath, the
+  // endpoint documented to compute that, does not exist (404).
+  async restoreFromTrash(
+    fileid: number,
+    options: { restoreTo?: number } = {},
+  ): Promise<PCloudResponse> {
+    return this.request("trash_restore", {
+      ...this.getAuthParams(),
+      fileid,
+      ...(options.restoreTo !== undefined
+        ? { restoreto: options.restoreTo }
+        : {}),
+    })
+  }
+
+  async restoreFolderFromTrash(
+    folderid: number,
+    options: { restoreTo?: number } = {},
+  ): Promise<PCloudResponse> {
+    return this.request("trash_restore", {
+      ...this.getAuthParams(),
+      folderid,
+      ...(options.restoreTo !== undefined
+        ? { restoreto: options.restoreTo }
+        : {}),
+    })
   }
 
   async listRewindFiles(path: string): Promise<PCloudResponse> {
