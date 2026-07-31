@@ -320,6 +320,60 @@ export class PCloudAPI {
     })
   }
 
+  // getfilelink hands back a host plus a set of interchangeable paths rather
+  // than a URL, so callers would otherwise each assemble one — and each get the
+  // scheme or the path/host pairing subtly wrong.
+  async getDownloadUrl(fileid: number): Promise<string> {
+    const link = await this.getFileLink(fileid)
+    if (link.result !== 0) {
+      throw new Error(
+        link.error ?? `could not get a download link (${link.result})`,
+      )
+    }
+    const host = link.hosts?.[0]
+    if (!host || !link.path) throw new Error("pCloud returned no download host")
+    return `https://${host}${link.path}`
+  }
+
+  async downloadFile(fileid: number): Promise<ArrayBuffer> {
+    const response = await fetch(await this.getDownloadUrl(fileid))
+    if (!response.ok) {
+      throw new Error(`download failed with HTTP ${response.status}`)
+    }
+    return response.arrayBuffer()
+  }
+
+  // uploadfile is multipart rather than a query string, so it does not go
+  // through request(); the auth parameters still travel in the URL because that
+  // is the only place pCloud reads them for this endpoint.
+  async uploadFile(
+    folderid: number,
+    filename: string,
+    contents: Uint8Array | ArrayBuffer,
+    options: { noPartial?: boolean } = {},
+  ): Promise<PCloudResponse> {
+    const url = new URL(`${this.apiServer}/uploadfile`)
+    for (const [key, value] of Object.entries(this.getAuthParams())) {
+      url.searchParams.append(key, value)
+    }
+    url.searchParams.set("folderid", String(folderid))
+    // Without this a failed transfer can leave a truncated file in place.
+    url.searchParams.set("nopartial", options.noPartial === false ? "0" : "1")
+
+    const form = new FormData()
+    form.append("file", new Blob([contents as BlobPart]), filename)
+
+    const response = await fetch(url.toString(), { method: "POST", body: form })
+    const text = await response.text()
+    try {
+      return JSON.parse(text) as PCloudResponse
+    } catch {
+      throw new Error(
+        `pCloud API returned non-JSON (HTTP ${response.status}) for uploadfile: ${redactSecrets(text).slice(0, 200)}`,
+      )
+    }
+  }
+
   async checksumFile(fileid: number): Promise<PCloudChecksumResponse> {
     return this.request<PCloudChecksumResponse>("checksumfile", {
       ...this.getAuthParams(),
