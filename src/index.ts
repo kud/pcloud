@@ -13,3 +13,7 @@ export type {
 } from "./auth/session-login.js"
 export { resolveAuth, resolveStoredAuth } from "./auth/resolve-auth.js"
 export type { ResolveAuthOptions } from "./auth/resolve-auth.js"
+
+export { pathResolver } from "./paths.js"
+export { planRewind, applyRewind } from "./rewind.js"
+export type { RewindAction, RewindPlan, RewindOutcome } from "./rewind.js"
