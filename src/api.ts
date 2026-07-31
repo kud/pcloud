@@ -433,10 +433,13 @@ export class PCloudAPI {
     })
   }
 
-  async removeShare(sharerequestid: number): Promise<PCloudResponse> {
+  // shareid, not sharerequestid: removeshare ends an *accepted* share, while
+  // accept/decline act on one still pending. Sending the wrong id got
+  // "Please provide 'shareid'." back, so the removal never happened.
+  async removeShare(shareid: number): Promise<PCloudResponse> {
     return this.request("removeshare", {
       ...this.getAuthParams(),
-      sharerequestid,
+      shareid,
     })
   }
 

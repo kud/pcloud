@@ -157,19 +157,55 @@ export interface PCloudChecksumResponse {
   md5: string
 }
 
+// An accepted share, keyed by shareid — which is what removeshare wants, and
+// not the sharerequestid that accept/decline take. Permissions arrive as four
+// booleans here rather than the bitmask sharefolder is handed.
 export interface PCloudShareItem {
-  sharerequestid?: number
+  shareid: number
   folderid: number
   foldername?: string
-  mail?: string
-  permissions?: number
-  status?: string
+  /** Outgoing only — who you shared it with. */
+  tomail?: string
+  /** Incoming only — who shared it with you. */
+  frommail?: string
+  touserid?: number
+  fromuserid?: number
+  owneruserid?: number
+  folderowneruserid?: number
+  canread?: boolean
+  cancreate?: boolean
+  canmodify?: boolean
+  candelete?: boolean
+  created?: string
 }
 
+// A share offered but not yet accepted: a different id, a different mail field,
+// and permissions as the bitmask. Conflating the two is what made `list-shares`
+// print columns no active share has.
+export interface PCloudShareRequest {
+  sharerequestid: number
+  folderid: number
+  sharename?: string
+  mail?: string
+  message?: string
+  permissions?: number
+  created?: string
+  expires?: string
+}
+
+export interface PCloudShareDirections<T> {
+  outgoing?: T[]
+  incoming?: T[]
+}
+
+// listshares answers with two objects, each split by direction — never the flat
+// array this was declared as. The wrong type was the whole bug: `.forEach` on
+// `response.shares` typechecked, then threw at runtime.
 export interface PCloudSharesResponse {
   result: number
   error?: string
-  shares: PCloudShareItem[]
+  shares?: PCloudShareDirections<PCloudShareItem>
+  requests?: PCloudShareDirections<PCloudShareRequest>
 }
 
 export interface PCloudPublink {
