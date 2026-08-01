@@ -54,6 +54,10 @@ const TREE: Record<string, unknown[]> = {
   "/Recipes": [file("bread.md", 240, 1_536, "2026-04-18T20:11:00Z")],
 }
 
+// Authored newest-first, because that is how a change log reads. Returned
+// oldest-first below, because that is the order pCloud's diff uses and every
+// consumer reverses it — a mock that got this backwards rendered the whole
+// history upside down while looking like a correct API.
 const CHANGES = [
   ["modifyfile", "2026-07-31T18:20:00Z", 201, "README.md", "/README.md"],
   ["modifyfile", "2026-07-31T17:55:00Z", 201, "README.md", "/README.md"],
@@ -135,7 +139,7 @@ export const createMockAPI = (): PCloudAPI => {
 
     diff: async () => ({
       result: 0,
-      entries: CHANGES.map(([event, time, id, name, path], i) => ({
+      entries: [...CHANGES].reverse().map(([event, time, id, name, path], i) => ({
         diffid: 1000 + i,
         event,
         time: rfc(time),
