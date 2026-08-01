@@ -17,11 +17,12 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "npm run clean && tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "vitest run"
   },
   "keywords": [
     "pcloud",
@@ -42,8 +43,9 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/node": "^25.0.0",
-    "typescript": "^6.0.0"
+    "@types/node": "25.6.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
   },
   "dependencies": {
     "open": "11.0.0"
