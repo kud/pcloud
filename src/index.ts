@@ -1,5 +1,5 @@
 export { PCloudAPI } from "./api.js"
-export { formatBytes, formatTimestamp } from "./format.js"
+export { formatBytes, formatDate, formatTimestamp } from "./format.js"
 export * from "./types.js"
 
 export { TokenStore } from "./auth/token-store.js"
