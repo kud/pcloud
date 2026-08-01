@@ -1,11 +1,11 @@
-# @kud/pcloud-sdk
+# @kud/pcloud
 
 Typed pCloud API client — shared SDK for CLI, MCP, and extensions.
 
 ## Install
 
 ```sh
-npm install @kud/pcloud-sdk
+npm install @kud/pcloud
 ```
 
 Requires Node.js 20 or later.
@@ -15,7 +15,7 @@ Requires Node.js 20 or later.
 ### Username / password
 
 ```typescript
-import { PCloudAPI } from "@kud/pcloud-sdk"
+import { PCloudAPI } from "@kud/pcloud"
 
 const api = new PCloudAPI()
 await api.authenticate("user@example.com", "password")
@@ -26,7 +26,7 @@ const info = await api.userInfo()
 ### OAuth access token
 
 ```typescript
-import { PCloudAPI } from "@kud/pcloud-sdk"
+import { PCloudAPI } from "@kud/pcloud"
 
 const api = new PCloudAPI()
 api.setAccessToken("your-access-token")
@@ -77,13 +77,23 @@ All methods return a typed promise. `result: 0` indicates success; a non-zero `r
 
 ### Sharing
 
-| Method                                     | Description                       |
-| ------------------------------------------ | --------------------------------- |
-| `listShares()`                             | List active shares                |
-| `shareFolder(folderid, mail, permissions)` | Share a folder with another user  |
-| `acceptShare(sharerequestid)`              | Accept an incoming share request  |
-| `declineShare(sharerequestid)`             | Decline an incoming share request |
-| `removeShare(sharerequestid)`              | Remove an existing share          |
+| Method                                     | Description                      |
+| ------------------------------------------ | -------------------------------- |
+| `listShares()`                             | List active shares               |
+| `shareFolder(folderid, mail, permissions)` | Share a folder with another user |
+| `acceptShare(sharerequestid)`              | Accept an incoming **request**   |
+| `declineShare(sharerequestid)`             | Decline an incoming **request**  |
+| `removeShare(shareid)`                     | End an **accepted** share        |
+
+`listShares()` answers with two objects split by direction —
+`{ shares: { outgoing, incoming }, requests: { outgoing, incoming } }` — never a
+flat array.
+
+Note the ids. An accepted share carries a `shareid` and reports its permissions
+as four booleans; a pending request carries a `sharerequestid` and the
+permissions bitmask. Both are numbers, so nothing in the type system catches
+sending the wrong one — pCloud answers `Please provide 'shareid'.` and the
+operation silently does not happen.
 
 ### Public links
 
@@ -109,10 +119,56 @@ All methods return a typed promise. `result: 0` indicates success; a non-zero `r
 
 ### Rewind
 
-| Method                              | Description                                |
-| ----------------------------------- | ------------------------------------------ |
-| `listRewindFiles(path)`             | List rewind events for a path              |
-| `restoreFromRewind(fileid, topath)` | Restore a file from rewind to a given path |
+pCloud's web app has a Rewind feature, but **no public API behind it** —
+`listrewindevents` returns a 404 under every spelling. `listRewindFiles` and
+`restoreFromRewind` exist on the client and will fail; they are kept only so a
+caller gets a clear error rather than a missing method.
+
+What the API does expose are the three pieces Rewind is built from: the change
+log says what happened and when, the trash holds deletions not yet purged, and
+revisions hold prior versions. Replaying the change log backwards over those two
+recovery paths reaches the same outcome, and that is what this package ships:
+
+```ts
+import { planRewind, applyRewind } from "@kud/pcloud"
+
+const plan = await planRewind(api, new Date("2026-07-30T20:30:00Z"))
+// → { actions, since, scanned }  — nothing has happened yet
+
+const outcomes = await applyRewind(api, plan)
+// → [{ action, ok, detail }, …]
+```
+
+| Function                              | Description                                             |
+| ------------------------------------- | ------------------------------------------------------- |
+| `planRewind(api, since, pathPrefix?)` | Work out what undoing everything since `since` requires |
+| `applyRewind(api, plan)`              | Execute a plan, reporting each action's outcome         |
+| `pathResolver(api, entries?)`         | Turn diff metadata into readable paths                  |
+
+Planning is separate from applying so a caller can show the cost first. A
+deletion is undone by restoring from trash and a modification by reverting to
+the newest revision predating the cutoff; **a creation is reported and never
+acted on**, since the only way to undo one is to delete real data — which is
+indistinguishable from the accident being repaired.
+
+`pathResolver` seeds itself from the diff stream before falling back to
+`listFolderById`, because a deleted folder can no longer be listed — and its
+children are exactly the files someone is trying to recover.
+
+### Authentication helpers
+
+| Export                        | Description                                                   |
+| ----------------------------- | ------------------------------------------------------------- |
+| `sessionLogin(options)`       | Email and password login, including two-factor                |
+| `OAuthFlow`                   | Browser OAuth flow, for callers with a registered application |
+| `TokenStore`                  | Reads and writes the stored credential                        |
+| `resolveAuth(options?)`       | An authenticated client from whatever credential is available |
+| `resolveStoredAuth(options?)` | The same, but never starts an interactive flow                |
+
+`resolveStoredAuth` exists because `resolveAuth` will fall through to an OAuth
+browser round-trip when the environment carries client credentials — which is
+the wrong thing to trigger from a precondition check that only wants to know
+whether a credential is already on hand.
 
 ### Low-level
 
