@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.0] - 2026-08-01
+
+### Added
+
+- **`createMockAPI()`, `mockSyncPairs()` and `mockSettings()`** — a pCloud
+  account that does not exist, for screenshots, demos and tests. Every name is
+  invented and every address is `@example.com`, because the alternative is
+  screenshotting a real drive, and a folder listing says more about someone than
+  they usually intend.
+  - Reads return plausible data; writes report success without doing anything,
+    so a demo can be driven end to end without an account.
+  - The fixtures are real enough to plan a rewind against, and include the cases
+    that have actually broken things: a trashed folder with no `deletetime`, and
+    a sync pair with a stuck queue.
+
+[1.1.0]: https://github.com/kud/pcloud/compare/v1.0.0...v1.1.0
+
 ## [1.0.0] - 2026-08-01
 
 The API is settled and the code that can destroy data is covered by tests. That

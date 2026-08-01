@@ -17,3 +17,5 @@ export type { ResolveAuthOptions } from "./auth/resolve-auth.js"
 export { pathResolver } from "./paths.js"
 export { planRewind, applyRewind } from "./rewind.js"
 export type { RewindAction, RewindPlan, RewindOutcome } from "./rewind.js"
+
+export { createMockAPI, mockSyncPairs, mockSettings } from "./mock.js"
