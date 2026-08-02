@@ -49,5 +49,6 @@
   },
   "dependencies": {
     "open": "11.0.0"
-  }
+  },
+  "homepage": "https://kud.io/projects/pcloud"
 }
