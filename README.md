@@ -1,6 +1,31 @@
-# @kud/pcloud
+<div align="center">
+
+<img src="assets/icon.svg" width="128" alt="pCloud icon" />
+
+☁️
+
+# pCloud
+
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white)
+![npm](https://img.shields.io/npm/v/%40kud%2Fpcloud?style=flat-square&color=CB3837)
+![MIT](https://img.shields.io/badge/licence-MIT-22C55E?style=flat-square)
+
+**☁️ Typed pCloud API client with OAuth and session auth — shared core for CLI, MCP and TUI surfaces**
+
+<a href="https://kud.io/projects/pcloud">Website</a> · <a href="https://kud.io/projects/pcloud/docs">Documentation</a>
+
+</div>
+
+## Features
 
 Typed pCloud API client — shared SDK for CLI, MCP, and extensions.
+
+- **Two ways in** — username and password (two-factor included) or an OAuth access token, with a stored credential resolved for you
+- **Files and folders** — list, stat, create, copy, move, rename, delete, checksums and download links
+- **Recovery** — revisions, trash, and a Rewind replay engine built from the change log, since pCloud exposes no Rewind API
+- **Sharing** — folder shares and requests, public links, zip downloads
+- **Fully typed** — every method returns a typed promise, every type exported from the root
 
 ## Install
 
@@ -10,7 +35,7 @@ npm install @kud/pcloud
 
 Requires Node.js 20 or later.
 
-## Quick start
+## Usage
 
 ### Username / password
 
@@ -197,6 +222,24 @@ All types are exported from the package root.
 | `PCloudResponse<T>`      | Generic response wrapper                                    |
 | `PCloudAuthResponse`     | Raw authentication response                                 |
 
+## Development
+
+```sh
+git clone https://github.com/kud/pcloud.git
+cd pcloud
+npm install
+npm run dev
+```
+
+| Script              | Purpose                        |
+| ------------------- | ------------------------------ |
+| `npm run build`     | Compile TypeScript to `dist/`  |
+| `npm run dev`       | Recompile on change            |
+| `npm run typecheck` | Type-check with `tsc --noEmit` |
+| `npm test`          | Run the vitest suite           |
+
 ## Licence
 
 MIT
+
+📚 **Full documentation → [pcloud/docs](https://kud.io/projects/pcloud/docs)**
