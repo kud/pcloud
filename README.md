@@ -22,7 +22,8 @@
 Typed pCloud API client — shared SDK for CLI, MCP, and extensions.
 
 - **Two ways in** — username and password (two-factor included) or an OAuth access token, with a stored credential resolved for you
-- **Files and folders** — list, stat, create, copy, move, rename, delete, checksums and download links
+- **Files and folders** — list, stat, create, copy, move, rename, delete and checksums
+- **Transfers** — download links, downloads, uploads and zip archives
 - **Recovery** — revisions, trash, and a Rewind replay engine built from the change log, since pCloud exposes no Rewind API
 - **Sharing** — folder shares and requests, public links, zip downloads
 - **Fully typed** — every method returns a typed promise, every type exported from the root
@@ -59,39 +60,58 @@ api.setAccessToken("your-access-token")
 const folder = await api.listFolder("/")
 ```
 
-The default API server is `https://eapi.pcloud.com` (EU endpoint). Pass a second argument to `setAccessToken` to override it.
+The default API server is `https://eapi.pcloud.com` (EU endpoint). Pass it to the constructor, or as a second argument to `setAccessToken` / `setAuth`, to override it.
+
+A session token (`auth`) is the more capable credential: revisions, trash, zip links and downloads answer `result 1000` to an OAuth access token. See [Authentication](https://kud.io/projects/pcloud/docs/authentication).
 
 ## API reference
 
-All methods return a typed promise. `result: 0` indicates success; a non-zero `result` with an `error` string indicates failure.
+All methods return a typed promise. `result: 0` indicates success; a non-zero `result` with an `error` string indicates failure. The client does not throw on a non-zero `result`; it throws only when pCloud answers with something that is not JSON, with credentials redacted from the message. Full reference: [Client](https://kud.io/projects/pcloud/docs/client).
 
 ### Authentication
 
-| Method                              | Description                                     |
-| ----------------------------------- | ----------------------------------------------- |
-| `authenticate(username, password)`  | Password auth — stores session token internally |
-| `setAccessToken(token, apiServer?)` | OAuth auth — optionally override the API server |
+| Method                                    | Description                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| `authenticate(username, password)`        | Password auth — stores session token internally                    |
+| `setAccessToken(token, apiServer?)`       | OAuth auth — optionally override the API server                    |
+| `setAuth(token, apiServer?)`              | Use an existing session token                                      |
+| `login(username, password, options?)`     | Session login with device name and expiry; reports a 2FA challenge |
+| `loginWithCode(username, password, code)` | Retry a login with the two-factor code                             |
+| `tfaLogin(tfaToken, code, trustDevice?)`  | Complete a two-factor login from its token                         |
+| `sendTfaCodeViaSms(tfaToken)`             | Ask pCloud to send the two-factor code by SMS                      |
+| `logout()`                                | Revoke the session token server-side                               |
 
 ### Account
 
-| Method       | Description                           |
-| ------------ | ------------------------------------- |
-| `userInfo()` | Returns account info, quota, and plan |
+| Method           | Description                                                 |
+| ---------------- | ----------------------------------------------------------- |
+| `userInfo()`     | Returns account info, quota, and plan                       |
+| `diff(options?)` | The change log — options `after`, `diffid`, `last`, `limit` |
 
 ### Files & folders
 
-| Method                       | Description                                    |
-| ---------------------------- | ---------------------------------------------- |
-| `listFolder(path?)`          | List folder contents (default `"/"`)           |
-| `stat(path)`                 | File or folder metadata                        |
-| `createFolder(path)`         | Create folder if it does not already exist     |
-| `deleteFolder(folderid)`     | Delete folder and all its contents recursively |
-| `copyFile(fileid, topath)`   | Copy file to a destination path                |
-| `moveFile(fileid, topath)`   | Move file to a destination path                |
-| `renameFile(fileid, toname)` | Rename file in place                           |
-| `deleteFile(fileid)`         | Permanently delete a file                      |
-| `getFileLink(fileid)`        | Get a temporary download link                  |
-| `checksumFile(fileid)`       | Returns SHA-256, SHA-1, and MD5 checksums      |
+| Method                                   | Description                                    |
+| ---------------------------------------- | ---------------------------------------------- |
+| `listFolder(path?)`                      | List folder contents (default `"/"`)           |
+| `listFolderById(folderid, { nofiles? })` | List a folder by id                            |
+| `stat(path)`                             | File or folder metadata                        |
+| `createFolder(path)`                     | Create folder if it does not already exist     |
+| `deleteFolder(folderid)`                 | Delete folder and all its contents recursively |
+| `copyFile(fileid, topath)`               | Copy file to a destination path                |
+| `moveFile(fileid, topath)`               | Move file to a destination path                |
+| `renameFile(fileid, toname)`             | Rename file in place                           |
+| `deleteFile(fileid)`                     | Delete a file                                  |
+| `checksumFile(fileid)`                   | Returns SHA-256, SHA-1, and MD5 checksums      |
+
+### Transfers
+
+| Method                                                     | Description                                    |
+| ---------------------------------------------------------- | ---------------------------------------------- |
+| `getFileLink(fileid)`                                      | Raw temporary link: `hosts[]` and `path`       |
+| `getDownloadUrl(fileid)`                                   | A ready `https://` download URL                |
+| `downloadFile(fileid)`                                     | Fetch a file into an `ArrayBuffer`             |
+| `uploadFile(folderid, filename, contents, { noPartial? })` | Multipart upload; `nopartial` is on by default |
+| `getZipLink(fileids[], folderids?, filename?)`             | Get a download link for a zip archive          |
 
 ### Revisions
 
@@ -129,18 +149,15 @@ operation silently does not happen.
 | `listPublinks()`                                 | List all active public links      |
 | `deletePublink(code)`                            | Delete a public link by code      |
 
-### Zip
-
-| Method                                         | Description                           |
-| ---------------------------------------------- | ------------------------------------- |
-| `getZipLink(fileids[], folderids?, filename?)` | Get a download link for a zip archive |
-
 ### Trash
 
-| Method                     | Description                   |
-| -------------------------- | ----------------------------- |
-| `listTrash()`              | List items in the trash       |
-| `restoreFromTrash(fileid)` | Restore a file from the trash |
+| Method                                             | Description                     |
+| -------------------------------------------------- | ------------------------------- |
+| `listTrash()`                                      | List items in the trash         |
+| `restoreFromTrash(fileid, { restoreTo? })`         | Restore a file from the trash   |
+| `restoreFolderFromTrash(folderid, { restoreTo? })` | Restore a folder from the trash |
+
+Pass `restoreTo` (a folder id) when the original parent may have been deleted too; otherwise pCloud picks the destination itself.
 
 ### Rewind
 
@@ -195,11 +212,26 @@ browser round-trip when the environment carries client credentials — which is
 the wrong thing to trigger from a precondition check that only wants to know
 whether a credential is already on hand.
 
+Both look, in order, at `PCLOUD_AUTH` (a session token), `PCLOUD_ACCESS_TOKEN`,
+then a stored session token and a stored access token; `resolveAuth` alone then
+runs `OAuthFlow` when `PCLOUD_CLIENT_ID` and `PCLOUD_CLIENT_SECRET` are set.
+
 ### Low-level
 
-| Method                       | Description                                              |
-| ---------------------------- | -------------------------------------------------------- |
-| `request<T>(method, params)` | Generic request — maps directly to a pCloud API endpoint |
+| Method                       | Description                                                      |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `request<T>(method, params)` | Generic GET — maps directly to a pCloud API endpoint             |
+| `post<T>(method, params)`    | The same as a form-encoded POST, keeping credentials out of URLs |
+
+### Helpers
+
+| Export                                         | Description                                                 |
+| ---------------------------------------------- | ----------------------------------------------------------- |
+| `formatBytes`, `formatTimestamp`, `formatDate` | Shared formatting for sizes and pCloud's RFC-1123 dates     |
+| `createMockAPI()`                              | An offline `PCloudAPI`-shaped client over invented fixtures |
+| `mockSyncPairs()`, `mockSettings()`            | Companion fixtures for demos and tests                      |
+
+See [Helpers](https://kud.io/projects/pcloud/docs/helpers) for examples.
 
 ## Types
 
@@ -219,6 +251,9 @@ All types are exported from the package root.
 | `PCloudPublink`          | Public link with code, expiry, and download count           |
 | `PCloudTrashItem`        | Trash entry extending `PCloudFile` with `deletetime`        |
 | `PCloudRewindItem`       | Rewind entry with `fileid`, `path`, and `time`              |
+| `PCloudDiffEntry`        | One change-log event from `diff()`                          |
+| `PCloudSharesResponse`   | `listShares()` result, split by direction                   |
+| `PCloudLoginResult`      | Session token, or a pending two-factor challenge            |
 | `PCloudResponse<T>`      | Generic response wrapper                                    |
 | `PCloudAuthResponse`     | Raw authentication response                                 |
 
