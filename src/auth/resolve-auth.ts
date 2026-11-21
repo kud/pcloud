@@ -63,6 +63,7 @@ export const resolveAuth = async (
 ): Promise<PCloudAPI> => {
   const {
     tokenEnvVar = "PCLOUD_ACCESS_TOKEN",
+    authEnvVar = "PCLOUD_AUTH",
     clientIdEnvVar = "PCLOUD_CLIENT_ID",
     clientSecretEnvVar = "PCLOUD_CLIENT_SECRET",
     defaultApiServer = "https://eapi.pcloud.com",
@@ -87,6 +88,6 @@ export const resolveAuth = async (
   }
 
   throw new Error(
-    `No pCloud credentials found. Set ${tokenEnvVar}, or ${clientIdEnvVar} + ${clientSecretEnvVar}, or run \`pcloud login\`.`,
+    `No pCloud credentials found. Set ${authEnvVar} or ${tokenEnvVar}, or ${clientIdEnvVar} + ${clientSecretEnvVar}, or run \`pcloud login\`.`,
   )
 }
