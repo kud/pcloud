@@ -556,12 +556,14 @@ export class PCloudAPI {
     })
   }
 
+  // The session token goes first for the reason given above adopt(): a client
+  // that holds an access token and then logs in must send the stronger one.
   private getAuthParams(): Record<string, string> {
-    if (this.accessToken) {
-      return { access_token: this.accessToken }
-    }
     if (this.auth) {
       return { auth: this.auth }
+    }
+    if (this.accessToken) {
+      return { access_token: this.accessToken }
     }
     return {}
   }

@@ -86,6 +86,18 @@ describe("credentials", () => {
     expect(seen[0]?.get("access_token")).toBe("oauth-token")
     expect(seen[0]?.get("auth")).toBeNull()
   })
+
+  // Trash, revisions, zip links and downloads refuse an access token, so a
+  // client upgraded by a login must not keep sending the weaker credential.
+  it("prefers the session token when both credentials are set", async () => {
+    const seen = captureParams()
+    const api = new PCloudAPI("https://eapi.pcloud.com")
+    api.setAccessToken("oauth-token")
+    api.setAuth("session-token")
+    await api.listTrash()
+    expect(seen[0]?.get("auth")).toBe("session-token")
+    expect(seen[0]?.get("access_token")).toBeNull()
+  })
 })
 
 describe("error handling", () => {
