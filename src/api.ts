@@ -343,9 +343,11 @@ export class PCloudAPI {
     return response.arrayBuffer()
   }
 
-  // uploadfile is multipart rather than a query string, so it does not go
-  // through request(); the auth parameters still travel in the URL because that
-  // is the only place pCloud reads them for this endpoint.
+  // uploadfile is multipart rather than a form body, so it does not go through
+  // request(). Its auth parameter stays in the URL: pCloud's documented upload
+  // contract puts parameters in the query string alongside the multipart file,
+  // and moving it into the multipart body has not been verified against the
+  // live API. This is the only call that still carries a credential in a URL.
   async uploadFile(
     folderid: number,
     filename: string,
@@ -597,26 +599,15 @@ export class PCloudAPI {
     }
   }
 
+  // Every API call goes through post(): with the credential in the body it
+  // stays out of access logs, proxies and pCloud's echoed error pages. pCloud
+  // reads parameters from a form body as readily as from the query string, which
+  // the login calls above already rely on. The one exception is uploadFile, see
+  // there.
   async request<T = any>(
     method: string,
     params: Record<string, any> = {},
   ): Promise<T> {
-    const url = new URL(`${this.apiServer}/${method}`)
-
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined && value !== null) {
-        url.searchParams.append(key, String(value))
-      }
-    }
-
-    const response = await fetch(url.toString())
-    const text = await response.text()
-    try {
-      return JSON.parse(text) as T
-    } catch {
-      throw new Error(
-        `pCloud API returned non-JSON (HTTP ${response.status}) for ${method}: ${redactSecrets(text).slice(0, 200)}`,
-      )
-    }
+    return this.post<T>(method, params)
   }
 }
