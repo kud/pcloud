@@ -67,11 +67,11 @@ const flow = new OAuthFlow("client-id", "client-secret")
 const { access_token, hostname } = await flow.authenticate()
 ```
 
-It starts a local server on port 3000 (the fourth constructor argument changes this), opens `https://my.pcloud.com/oauth2/authorize` in the browser, receives the callback at `/oauth/callback` and exchanges the code for a token. The `open` package is loaded only at that point, so consumers that already hold a token never pay for it.
+It starts a local server on `127.0.0.1`, port 3000 (the fourth constructor argument changes this), opens `https://my.pcloud.com/oauth2/authorize` in the browser with a random `state`, receives the callback at `/oauth/callback` and exchanges the code for a token. A callback without the matching `state` is answered with an error and otherwise ignored, the `hostname` it names must be `api.pcloud.com` or `eapi.pcloud.com`, and the client secret travels in a POST body. The `open` package is loaded only at that point, so consumers that already hold a token never pay for it.
 
 ## Stored credentials
 
-`TokenStore` reads and writes `~/.config/pcloud/tokens.json`, created with mode `0600`. It holds `auth`, `access_token`, `hostname` and `expiresAt`, and offers `save`, `load`, `delete` and `exists`.
+`TokenStore` reads and writes `~/.config/pcloud/tokens.json`, in a `0700` directory. Each save writes a fresh `0600` temp file and renames it into place, so the credential is never on disk with a wider mode; an existing file or directory with a looser mode is tightened when the store is opened. It holds `auth`, `access_token`, `hostname` and `expiresAt`, and offers `save`, `load`, `delete` and `exists`.
 
 ## Resolving a client
 
