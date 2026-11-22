@@ -10,8 +10,13 @@ const captureParams = () => {
   const seen: URLSearchParams[] = []
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (url: string) => {
-      seen.push(new URL(url).searchParams)
+    vi.fn(async (url: string, init?: RequestInit) => {
+      // Query and form body together: what pCloud reads, wherever it travels.
+      const params = new URLSearchParams(new URL(url).searchParams)
+      if (init?.body instanceof URLSearchParams) {
+        for (const [k, v] of init.body) params.append(k, v)
+      }
+      seen.push(params)
       return {
         ok: true,
         status: 200,
@@ -97,6 +102,48 @@ describe("credentials", () => {
     await api.listTrash()
     expect(seen[0]?.get("auth")).toBe("session-token")
     expect(seen[0]?.get("access_token")).toBeNull()
+  })
+})
+
+// A URL is recorded verbatim by access logs, proxies and pCloud's own error
+// pages, so the credential must travel in the request body.
+describe("credentials stay out of the URL", () => {
+  const captureUrls = () => {
+    const calls: { url: string; init?: RequestInit }[] = []
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({ url, init })
+        return {
+          ok: true,
+          status: 200,
+          text: async () => JSON.stringify({ result: 0 }),
+        } as Response
+      }),
+    )
+    return calls
+  }
+
+  it("sends the session token in a POST body", async () => {
+    const calls = captureUrls()
+    await client().listFolder("/")
+    const { url, init } = calls[0]!
+    expect(url).not.toContain("test-token")
+    expect(new URL(url).searchParams.get("auth")).toBeNull()
+    expect(init?.method).toBe("POST")
+    expect((init?.body as URLSearchParams).get("auth")).toBe("test-token")
+  })
+
+  it("sends an OAuth token in a POST body", async () => {
+    const calls = captureUrls()
+    const api = new PCloudAPI("https://eapi.pcloud.com")
+    api.setAccessToken("oauth-token")
+    await api.userInfo()
+    const { url, init } = calls[0]!
+    expect(url).not.toContain("oauth-token")
+    expect((init?.body as URLSearchParams).get("access_token")).toBe(
+      "oauth-token",
+    )
   })
 })
 
